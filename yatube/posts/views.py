@@ -4,8 +4,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from yatube.settings import POSTS_QUANTITY
 
-from .forms import PostForm, CommentForm
-from .models import Group, Post, User, Follow
+from .forms import CommentForm, PostForm
+from .models import Follow, Group, Post, User
 
 
 def index(request):
@@ -90,7 +90,7 @@ def post_edit(request, post_id: int):
                     files=request.FILES or None,
                     instance=post)
     if form.is_valid():
-        post.save()
+        form.save()
         return redirect('posts:post_detail', post_id)
 
     context = {
@@ -134,18 +134,16 @@ def follow_index(request):
 
 @ login_required
 def profile_follow(request, username):
-
-    is_follow = request.user.follower.filter(
-        author__username=username).exists()
-
     author_user = User.objects.get(username=username)
 
-    if not is_follow and request.user != author_user:
-        follow = Follow.objects.create(
+    if request.user != author_user:
+        follow, is_follow = Follow.objects.get_or_create(
             user=request.user,
-            author=User.objects.get(username=username)
+            author=author_user
         )
-        follow.save()
+
+        if not is_follow:
+            follow.save()
 
     return redirect('posts:profile', username=username)
 

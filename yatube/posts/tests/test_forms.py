@@ -119,7 +119,7 @@ class MediaTests(TestCase):
         self.authorized_client = Client()
         self.authorized_client.force_login(MediaTests.user)
 
-    def test_create_task(self):
+    def test_create_image(self):
         tasks_count = Post.objects.count()
         small_gif = (
             b'\x47\x49\x46\x38\x39\x61\x02\x00'
@@ -147,3 +147,29 @@ class MediaTests(TestCase):
         self.assertRedirects(response, reverse('posts:profile',
                                                args=(self.user.username,)))
         self.assertEqual(Post.objects.count(), tasks_count + 1)
+
+    def test_decline_not_image(self):
+        uploaded = SimpleUploadedFile(
+            name='not_image.txt',
+            content=b'toto'
+        )
+
+        form_data = {
+            'group': self.group.id,
+            'text': 'Тестовый текст',
+            'image': uploaded,
+        }
+
+        response = self.authorized_client.post(
+            reverse('posts:post_create'),
+            data=form_data,
+            follow=True
+        )
+
+        error_text = (
+            'Загрузите правильное изображение. '
+            'Файл, который вы загрузили, поврежден '
+            'или не является изображением.'
+        )
+
+        self.assertFormError(response, 'form', 'image', error_text)
